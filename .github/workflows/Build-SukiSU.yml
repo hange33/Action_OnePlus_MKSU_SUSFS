@@ -1,7 +1,7 @@
 name: Build OnePlus_Kernel
 on:
   schedule:
-    - cron: '0 */2 * * *'  # 每小时整点运行 
+    - cron: '0 0 * * *'  # 每小时整点运行 
   workflow_dispatch: {}  # 保留手动触发但不带参数
 
 jobs:
