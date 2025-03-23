@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允许创建 Releases 和上传文件
     env:
       CPU: sm8650
       FEIL: oneplus12_v
