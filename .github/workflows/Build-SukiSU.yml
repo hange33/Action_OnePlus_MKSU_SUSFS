@@ -142,3 +142,26 @@ jobs:
         with:
          name: AnyKernel3_KernelSU_${{ env.KSUVER }}_${{ env.FEIL }}
          path: ./AnyKernel3/*
+         
+      # 新增步骤：创建 GitHub Release
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "v${{ env.KSUVER }}"
+          release_name: "KernelSU Build ${{ env.KSUVER }}"
+          draft: false
+          prerelease: false
+
+      # 新增步骤：上传 AnyKernel3 到 Release
+      - name: Upload AnyKernel3 to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./AnyKernel3/*
+          asset_name: AnyKernel3_KernelSU_${{ env.KSUVER }}.zip
+
