@@ -48,7 +48,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: "v${{ env.KSUVER }}"
-          release_name: "KernelSU Build ${{ env.KSUVER }}"
+          release_name: "OnePlus12 SukiSU Build ${{ env.KSUVER }}"
           draft: false
           prerelease: false
 
