@@ -160,9 +160,8 @@ jobs:
       # 新增步骤：上传 AnyKernel3 到 Release
       - name: Upload AnyKernel3 to Release
         uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./AnyKernel3/*
-          asset_name: AnyKernel3_KernelSU_${{ env.KSUVER }}.zip
+          asset_path: ./AnyKernel3/YourKernel.zip  # 需明确指定具体文件
+          asset_name: Kernel.zip
+          asset_content_type: application/zip  # 新增内容类型参数
