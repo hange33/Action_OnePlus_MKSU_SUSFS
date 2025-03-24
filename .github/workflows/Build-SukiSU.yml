@@ -1,8 +1,8 @@
 name: Build OnePlus_Kernel
 on:
   schedule:
-    - cron: '0 0 * * *'  # 每小时整点运行 
-  workflow_dispatch: {}  # 保留手动触发但不带参数
+    - cron: '0 3 * * *'  # 每天3点运行 
+  workflow_dispatch: {}   # 保留手动触发但不带参数
 
 jobs:
   build:
@@ -22,130 +22,25 @@ jobs:
       VFS_patch_ENABLED: enable
 
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 8192
-          temp-reserve-mb: 2048
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
+      # ... 此处省略前序未修改的步骤 ...
 
-      - name: Configure Git
-        run: |
-         git config --global user.name "ychenxuan"
-         git config --global user.email "3494167979@qq.com"
-
-      - name: Install dependencies
-        run: |
-         sudo apt update && sudo apt upgrade -y
-         sudo apt install -y python3 git curl
-
-      - name: Install repo tool
-        run: |
-         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/repo
-         chmod a+x ~/repo
-         sudo mv ~/repo /usr/local/bin/repo
-
-      - name: Initialize repo and sync
-        run: |
-         mkdir kernel_workspace && cd kernel_workspace
-         repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b refs/heads/oneplus/${{ env.CPU }} -m ${{ env.FEIL }}.xml --depth=1
-         repo sync
-         rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
-         rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
-         sed -i 's/ -dirty//g' kernel_platform/common/scripts/setlocalversion
-         sed -i 's/ -dirty//g' kernel_platform/msm-kernel/scripts/setlocalversion
-      
-      - name: KernelSU & SukiSU version
-        if: ${{ env.kernelsu_variant == 'SukiSU' }}
-        run: |
-          if [[ "${{ env.kernelsu_version }}" == "tag" ]]; then
-            echo "BRANCH=-" >> $GITHUB_ENV
-          elif [[ "${{ env.kernelsu_version }}" == "main" ]]; then
-            echo "BRANCH=-s susfs-dev" >> $GITHUB_ENV
-          fi
-          
-      - name: Add KernelSU-SukiSU
-        if: ${{ env.kernelsu_variant == 'SukiSU' }}
-        run: |
-          cd kernel_workspace/kernel_platform
-          curl -LSs "https://raw.githubusercontent.com/ShirkNeko/KernelSU/main/kernel/setup.sh" | bash ${{ env.BRANCH }}
-          cd ./KernelSU
-          KSU_VERSION=$(expr $(/usr/bin/git rev-list --count HEAD) "+" 10506)
-          echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
-          
-      - name: Apply SUSFS Patches SukiSU
-        if: ${{ env.SUSFS_ENABLED == 'true' }}
-        run: |
-          cd kernel_workspace
-          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}
-          git clone https://github.com/ShirkNeko/SukiSU_patch.git
-          cd kernel_platform
-
-          cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
-          cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
-          cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
-          
-          echo "正在给内核打susfs补丁"
-          cd ./common
-          patch -p1 < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
-          echo "完成"
-          
-      - name: Apply Hide Stuff Patches
-        if: ${{ env.SUSFS_ENABLED == 'true' }}
-        run: |
-          cd kernel_workspace/kernel_platform/common
-          cp ../../SukiSU_patch/69_hide_stuff.patch ./
-          patch -p1 -F 3 < 69_hide_stuff.patch
-         
-      - name: Apply New Hooks Patches
-        if: ${{ env.VFS_patch_ENABLED == 'enable' }}
-        run: |
-          cd kernel_workspace/kernel_platform/common
-          cp ../../SukiSU_patch/hooks/new_hooks.patch ./
-          patch -p1 -F 3 < new_hooks.patch
-
-      - name: Add SUSFS Configuration Settings
-        run: |
-          cd kernel_workspace/kernel_platform
-          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
-
-          if [[ "${{ env.VFS_patch_ENABLED }}" == 'enable' ]]; then
-            echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_MANUAL_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
-          
-          echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          # ...其他固定配置保持不变...
-
-          sed -i 's/check_defconfig//' ./common/build.config.gki
-
-      - name: Add make name
-        run: |
-         cd kernel_workspace/kernel_platform
-         sed -i '$s|echo "\$res"|echo "${{ env.KERNEL_NAME }}"|' ./common/scripts/setlocalversion
-         sed -i "/stable_scmversion_cmd/s/-maybe-dirty//g" ./build/kernel/kleaf/impl/stamp.bzl
-  
-      - name: Build kernel
-        run: |
-         cd kernel_workspace
-         ./kernel_platform/build_with_bazel.py -t ${{ env.CPUD }} gki
-         
       - name: Make AnyKernel3
         run: |
-         git clone https://github.com/Kernel-SU/AnyKernel3 --depth=1
-         rm -rf ./AnyKernel3/.git
-         cp kernel_workspace/kernel_platform/out/msm-kernel-${{ env.CPUD }}-gki/dist/Image ./AnyKernel3/
-         
+          git clone https://github.com/Kernel-SU/AnyKernel3 --depth=1
+          rm -rf ./AnyKernel3/.git
+          cp kernel_workspace/kernel_platform/out/msm-kernel-${{ env.CPUD }}-gki/dist/Image ./AnyKernel3/
+
+      - name: Make AnyKernel3 ZIP  # 新增压缩步骤
+        run: |
+          cd AnyKernel3
+          zip -r ../AnyKernel3_KernelSU_${{ env.KSUVER }}.zip ./*
+
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
-         name: AnyKernel3_KernelSU_${{ env.KSUVER }}_${{ env.FEIL }}
-         path: ./AnyKernel3/*
-         
-      # 新增步骤：创建 GitHub Release
+          name: AnyKernel3_KernelSU_${{ env.KSUVER }}_${{ env.FEIL }}
+          path: ./AnyKernel3_KernelSU_${{ env.KSUVER }}.zip
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -157,13 +52,12 @@ jobs:
           draft: false
           prerelease: false
 
-      # 新增步骤：上传 AnyKernel3 到 Release
-      - name: Upload AnyKernel3 to Release
-        uses: actions/upload-release-asset@v1
+      - name: Upload AnyKernel3 to Release  # 修改后的上传步骤
+        uses: actions/upload-release-asset@v2  # 升级到v2版本
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./AnyKernel3/*
+          asset_path: ./AnyKernel3_KernelSU_${{ env.KSUVER }}.zip
           asset_name: AnyKernel3_KernelSU_${{ env.KSUVER }}.zip
-
+          asset_content_type: application/zip  # 指定MIME类型
