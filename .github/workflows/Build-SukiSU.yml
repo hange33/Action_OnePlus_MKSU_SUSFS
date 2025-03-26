@@ -160,6 +160,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./AnyKernel3/*
+          asset_path: ./AnyKernel3/AnyKernel3_KernelSU_${{ env.KSUVER }}_${{ env.FEIL }}
           asset_name: AnyKernel3_KernelSU_${{ env.KSUVER }}_${{ env.FEIL }}
           asset_content_type: application/zip  # 新增内容类型参数
